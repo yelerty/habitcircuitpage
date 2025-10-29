@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>루틴 공유 커뮤니티 - Habit Circuit</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🔄 루틴 공유 커뮤니티</h1>
+            <p class="subtitle">다른 사람들의 일상 루틴을 둘러보고 공유하세요</p>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="tabs">
+            <button class="tab-btn active" data-view="browse">둘러보기</button>
+            <button class="tab-btn" data-view="upload">공유하기</button>
+        </nav>
+
+        <!-- Browse View -->
+        <div id="browse-view" class="view active">
+            <!-- Filters -->
+            <div class="filters">
+                <div class="filter-group">
+                    <label>요일</label>
+                    <select id="day-filter" class="filter-select">
+                        <option value="">전체</option>
+                        <option value="월요일">월요일</option>
+                        <option value="화요일">화요일</option>
+                        <option value="수요일">수요일</option>
+                        <option value="목요일">목요일</option>
+                        <option value="금요일">금요일</option>
+                        <option value="토요일">토요일</option>
+                        <option value="일요일">일요일</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>시간대</label>
+                    <select id="time-filter" class="filter-select">
+                        <option value="">전체</option>
+                        <option value="아침">🌅 아침</option>
+                        <option value="점심">☀️ 점심</option>
+                        <option value="저녁">🌙 저녁</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>정렬</label>
+                    <select id="sort-filter" class="filter-select">
+                        <option value="recent">최신순</option>
+                        <option value="popular">인기순</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Routine Cards Container -->
+            <div id="routines-container" class="routines-grid">
+                <div class="loading">로딩 중...</div>
+            </div>
+        </div>
+
+        <!-- Upload View -->
+        <div id="upload-view" class="view">
+            <div class="upload-container">
+                <h2>내 루틴 공유하기</h2>
+                <p class="help-text">
+                    Habit Circuit 앱에서 내보낸 JSON 파일을 업로드하거나 직접 입력하세요.
+                </p>
+
+                <!-- Upload Method Tabs -->
+                <div class="upload-tabs">
+                    <button class="upload-tab-btn active" data-method="file">파일 업로드</button>
+                    <button class="upload-tab-btn" data-method="manual">직접 입력</button>
+                </div>
+
+                <!-- File Upload Method -->
+                <div id="file-upload-method" class="upload-method active">
+                    <div class="file-upload-area" id="file-drop-zone">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                        </svg>
+                        <p>JSON 파일을 드래그하거나 클릭하여 업로드</p>
+                        <input type="file" id="file-input" accept=".json" hidden>
+                        <button class="btn-secondary" id="browse-file-btn">파일 선택</button>
+                    </div>
+                    <div id="file-preview" class="file-preview hidden"></div>
+                </div>
+
+                <!-- Manual Input Method -->
+                <div id="manual-upload-method" class="upload-method">
+                    <form id="manual-form" class="manual-form">
+                        <div class="form-group">
+                            <label for="manual-day">요일 *</label>
+                            <select id="manual-day" required class="form-control">
+                                <option value="">선택하세요</option>
+                                <option value="월요일">월요일</option>
+                                <option value="화요일">화요일</option>
+                                <option value="수요일">수요일</option>
+                                <option value="목요일">목요일</option>
+                                <option value="금요일">금요일</option>
+                                <option value="토요일">토요일</option>
+                                <option value="일요일">일요일</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="manual-time">시간대 *</label>
+                            <select id="manual-time" required class="form-control">
+                                <option value="">선택하세요</option>
+                                <option value="아침">🌅 아침</option>
+                                <option value="점심">☀️ 점심</option>
+                                <option value="저녁">🌙 저녁</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="manual-routines">루틴 목록 *</label>
+                            <textarea
+                                id="manual-routines"
+                                required
+                                class="form-control"
+                                rows="8"
+                                placeholder="각 줄에 하나씩 루틴을 입력하세요&#10;예시:&#10;물 한 잔 마시기&#10;10분 스트레칭&#10;아침 식사하기&#10;뉴스 읽기"
+                            ></textarea>
+                            <small class="form-hint">각 줄에 하나씩 입력하면 순서대로 저장됩니다</small>
+                        </div>
+                        <button type="submit" class="btn-primary" id="manual-submit-btn">
+                            공유하기
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Preview before upload -->
+                <div id="upload-preview" class="upload-preview hidden">
+                    <h3>미리보기</h3>
+                    <div id="preview-content"></div>
+                    <div class="preview-actions">
+                        <button class="btn-primary" id="confirm-upload-btn">확인 및 업로드</button>
+                        <button class="btn-secondary" id="cancel-upload-btn">취소</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Routine Detail Modal -->
+    <div id="routine-modal" class="modal hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="close-modal-btn">&times;</button>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- Firebase SDK -->
+    <script type="module" src="firebase.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>

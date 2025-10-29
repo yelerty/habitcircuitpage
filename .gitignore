@@ -1,0 +1,25 @@
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# Environment variables
+.env
+.env.local
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
