@@ -1,6 +1,8 @@
 import {
     auth,
     db,
+    authReadyPromise,
+    authInitialized,
     collection,
     addDoc,
     getDocs,
@@ -23,7 +25,7 @@ const TIME_TYPES = {
 
 // ===== Data Schema Matching iOS App =====
 // This matches the RoutineExportData structure from iOS
-const createRoutineDocument = (dayOfWeek, timeType, routines, userId) => {
+const createRoutineDocument = (dayOfWeek, timeType, routines, userId, title = '', uploadId = '') => {
     return {
         version: '1.0',
         dayOfWeek: dayOfWeek,
@@ -33,8 +35,10 @@ const createRoutineDocument = (dayOfWeek, timeType, routines, userId) => {
             order: index + 1
         })),
         anonId: userId,
+        uploadId: uploadId, // Group routines from same upload session
         createdAt: serverTimestamp(),
         likes: 0,
+        title: title || '', // Optional title
         metadata: {
             platform: 'Web',
             uploadDate: new Date().toISOString()
@@ -79,10 +83,14 @@ const elements = {
 
     // Manual Form
     manualForm: document.getElementById('manual-form'),
+    manualTitle: document.getElementById('manual-title'),
     manualDay: document.getElementById('manual-day'),
     manualTime: document.getElementById('manual-time'),
     manualRoutines: document.getElementById('manual-routines'),
     manualSubmitBtn: document.getElementById('manual-submit-btn'),
+
+    // Preview title
+    previewTitle: document.getElementById('preview-title'),
 
     // Upload Preview
     uploadPreview: document.getElementById('upload-preview'),
@@ -102,8 +110,55 @@ const elements = {
 // ===== Initialize App =====
 document.addEventListener('DOMContentLoaded', () => {
     initializeEventListeners();
+    initializeAuthStatus();
     loadRoutines();
 });
+
+// ===== Auth Status UI =====
+async function initializeAuthStatus() {
+    const authStatusEl = document.getElementById('auth-status');
+    const indicatorEl = authStatusEl.querySelector('.auth-status-indicator');
+    const textEl = authStatusEl.querySelector('.auth-status-text');
+
+    authStatusEl.classList.add('loading');
+
+    try {
+        console.log('⏳ Waiting for authentication...');
+        const user = await authReadyPromise;
+
+        if (user) {
+            // Success
+            authStatusEl.classList.remove('loading');
+            authStatusEl.classList.add('authenticated');
+            indicatorEl.textContent = '✅';
+            textEl.textContent = '인증 완료';
+            console.log('✅ Auth status UI updated: authenticated');
+
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                authStatusEl.style.opacity = '0';
+                authStatusEl.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => {
+                    authStatusEl.style.display = 'none';
+                }, 500);
+            }, 3000);
+        } else {
+            throw new Error('No user returned from authentication');
+        }
+    } catch (error) {
+        // Error
+        authStatusEl.classList.remove('loading');
+        authStatusEl.classList.add('error');
+        indicatorEl.textContent = '❌';
+        textEl.textContent = '인증 실패';
+        console.error('❌ Auth status UI updated: error', error);
+
+        // Show error details
+        setTimeout(() => {
+            textEl.textContent = '인증 실패 - 페이지 새로고침 필요';
+        }, 2000);
+    }
+}
 
 // ===== Event Listeners =====
 function initializeEventListeners() {
@@ -272,41 +327,217 @@ function renderRoutines() {
         return;
     }
 
-    elements.routinesContainer.innerHTML = currentRoutines
-        .map(routine => createRoutineCard(routine))
-        .join('');
-
-    // Add event listeners to cards
-    document.querySelectorAll('.routine-card').forEach(card => {
-        card.addEventListener('click', (e) => {
-            if (!e.target.closest('.routine-likes')) {
-                showRoutineDetail(card.dataset.routineId);
-            }
-        });
+    // Group routines by uploadId (each upload session becomes a separate card)
+    const groupedByUpload = {};
+    currentRoutines.forEach(routine => {
+        const uploadKey = routine.uploadId || routine.anonId; // Fallback to anonId for old data
+        if (!groupedByUpload[uploadKey]) {
+            groupedByUpload[uploadKey] = [];
+        }
+        groupedByUpload[uploadKey].push(routine);
     });
 
-    // Add event listeners to like buttons
-    document.querySelectorAll('.routine-likes').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            likeRoutine(btn.dataset.routineId);
+    // Create user cards
+    const userCards = Object.entries(groupedByUpload).map(([uploadKey, routines]) => {
+        return createUserCard(uploadKey, routines);
+    });
+
+    elements.routinesContainer.innerHTML = userCards.join('');
+
+    // Add event listeners to user cards
+    document.querySelectorAll('.user-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const uploadKey = card.dataset.userId;
+            showUserRoutines(uploadKey, groupedByUpload[uploadKey]);
         });
     });
 }
 
+function createUserCard(userId, routines) {
+    // Calculate stats
+    const daySet = new Set(routines.map(r => r.dayOfWeek));
+    const totalRoutineItems = routines.reduce((sum, r) => sum + r.routines.length, 0);
+    const totalLikes = routines.reduce((sum, r) => sum + (r.likes || 0), 0);
+
+    // Get latest upload date
+    const latestDate = routines.reduce((latest, r) => {
+        const date = r.createdAt?.toDate ? r.createdAt.toDate() : new Date(r.createdAt);
+        return date > latest ? date : latest;
+    }, new Date(0));
+
+    // Get title (use first routine's title, or default)
+    const title = routines[0]?.title || '익명 사용자의 일주일 루틴';
+
+    return `
+        <div class="user-card" data-user-id="${userId}">
+            <div class="user-card-header">
+                <div class="user-avatar">👤</div>
+                <div class="user-info">
+                    <h3 class="user-title">${title}</h3>
+                    <p class="user-stats">${daySet.size}개 요일 · ${totalRoutineItems}개 루틴</p>
+                </div>
+            </div>
+            <div class="user-card-footer">
+                <span class="upload-date">${formatDate(latestDate)}</span>
+                <span class="total-likes">❤️ ${totalLikes}</span>
+            </div>
+        </div>
+    `;
+}
+
+function showUserRoutines(userId, routines) {
+    // Group by day
+    const groupedByDay = {};
+    routines.forEach(routine => {
+        if (!groupedByDay[routine.dayOfWeek]) {
+            groupedByDay[routine.dayOfWeek] = [];
+        }
+        groupedByDay[routine.dayOfWeek].push(routine);
+    });
+
+    // Get title
+    const title = routines[0]?.title || '익명 사용자의 일주일 루틴';
+
+    // Render day groups
+    const dayOrder = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
+    const html = dayOrder
+        .filter(day => groupedByDay[day])
+        .map(day => createDayRoutineGroup(day, groupedByDay[day]))
+        .join('');
+
+    elements.modalBody.innerHTML = `
+        <div class="user-routines-modal">
+            <h2 class="modal-title">👤 ${title}</h2>
+            <div class="modal-routines">
+                ${html}
+            </div>
+        </div>
+    `;
+
+    elements.modal.classList.remove('hidden');
+
+    // Add event listeners to day headers
+    document.querySelectorAll('.day-routine-group-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const dayGroup = header.parentElement;
+            dayGroup.classList.toggle('collapsed');
+        });
+    });
+}
+
+function createDayRoutineGroup(day, dayRoutines) {
+    // Collect all routine items with their time info
+    const allRoutineItems = [];
+    dayRoutines.forEach(routineDoc => {
+        const timeInfo = TIME_TYPES[routineDoc.timeType] || { icon: '⏰', color: 'morning' };
+        routineDoc.routines.forEach(item => {
+            allRoutineItems.push({
+                ...item,
+                timeType: routineDoc.timeType,
+                timeIcon: timeInfo.icon,
+                timeColor: timeInfo.color,
+                routineDocId: routineDoc.id,
+                likes: routineDoc.likes || 0
+            });
+        });
+    });
+
+    // Sort by order
+    allRoutineItems.sort((a, b) => {
+        // First by time type (아침, 점심, 저녁)
+        const timeOrder = { '아침': 0, '점심': 1, '저녁': 2 };
+        const timeCompare = timeOrder[a.timeType] - timeOrder[b.timeType];
+        if (timeCompare !== 0) return timeCompare;
+        // Then by order within same time
+        return a.order - b.order;
+    });
+
+    const totalCount = allRoutineItems.length;
+    const shouldFold = totalCount > 10;
+    const displayItems = shouldFold ? allRoutineItems.slice(0, 10) : allRoutineItems;
+    const hiddenCount = shouldFold ? totalCount - 10 : 0;
+
+    return `
+        <div class="day-routine-group ${shouldFold ? 'collapsed' : ''}">
+            <div class="day-routine-group-header">
+                <div class="day-routine-title">
+                    <span class="day-name">${day}</span>
+                    <span class="routine-count">${totalCount}개</span>
+                </div>
+                ${shouldFold ? '<span class="expand-icon">▼</span>' : ''}
+            </div>
+            <div class="day-routine-content">
+                <div class="routine-list">
+                    ${displayItems.map(item => `
+                        <div class="routine-list-item">
+                            <span class="time-icon ${item.timeColor}">${item.timeIcon}</span>
+                            <span class="routine-item-name">${item.name}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                ${shouldFold ? `
+                    <div class="show-more-items">
+                        ${allRoutineItems.slice(10).map(item => `
+                            <div class="routine-list-item">
+                                <span class="time-icon ${item.timeColor}">${item.timeIcon}</span>
+                                <span class="routine-item-name">${item.name}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+function createDayGroup(day, timeGroups) {
+    const timeOrder = ['아침', '점심', '저녁'];
+    const totalRoutines = Object.values(timeGroups).flat().length;
+
+    return `
+        <div class="day-group">
+            <div class="day-group-header">
+                <div class="day-group-title">
+                    <span class="day-name">${day}</span>
+                    <span class="routine-count">${totalRoutines}개 루틴</span>
+                </div>
+                <span class="expand-icon">▼</span>
+            </div>
+            <div class="day-group-content">
+                ${timeOrder
+                    .filter(time => timeGroups[time])
+                    .map(time => createTimeGroup(time, timeGroups[time]))
+                    .join('')}
+            </div>
+        </div>
+    `;
+}
+
+function createTimeGroup(timeType, routines) {
+    const timeInfo = TIME_TYPES[timeType] || { icon: '⏰', color: 'morning' };
+
+    return `
+        <div class="time-group">
+            <div class="time-group-header">
+                <span class="time-badge ${timeInfo.color}">
+                    ${timeInfo.icon} ${timeType}
+                </span>
+                <span class="time-routine-count">${routines.length}개</span>
+                <span class="expand-icon-small">▼</span>
+            </div>
+            <div class="time-group-content">
+                ${routines.map(routine => createRoutineCard(routine)).join('')}
+            </div>
+        </div>
+    `;
+}
+
 function createRoutineCard(routine) {
-    const timeInfo = TIME_TYPES[routine.timeType] || { icon: '⏰', color: 'morning' };
     const routinesList = routine.routines.slice(0, 3);
     const hasMore = routine.routines.length > 3;
 
     return `
         <div class="routine-card" data-routine-id="${routine.id}">
-            <div class="routine-card-header">
-                <span class="routine-badge ${timeInfo.color}">
-                    ${timeInfo.icon} ${routine.timeType}
-                </span>
-                <span class="routine-day">${routine.dayOfWeek}</span>
-            </div>
             <div class="routine-items">
                 ${routinesList.map(r => `
                     <div class="routine-item">
@@ -471,6 +702,7 @@ function handleManualSubmit(e) {
     const day = elements.manualDay.value;
     const time = elements.manualTime.value;
     const routinesText = elements.manualRoutines.value.trim();
+    const title = elements.manualTitle.value.trim(); // Get title from manual form
 
     if (!day || !time || !routinesText) {
         showToast('모든 필드를 입력해주세요.', 'error');
@@ -496,6 +728,9 @@ function handleManualSubmit(e) {
         }))
     }];
 
+    // Set the title in preview input so it will be used during upload
+    elements.previewTitle.value = title;
+
     showUploadPreview(pendingUpload);
 }
 
@@ -503,25 +738,77 @@ function handleManualSubmit(e) {
 async function confirmUpload() {
     if (!pendingUpload || pendingUpload.length === 0) return;
 
-    const user = auth.currentUser;
-    if (!user) {
-        showToast('로그인이 필요합니다. 잠시 후 다시 시도해주세요.', 'error');
-        return;
-    }
-
     elements.confirmUploadBtn.disabled = true;
     elements.confirmUploadBtn.textContent = '업로드 중...';
 
     try {
+        console.log('📤 Starting upload process...');
+        console.log('Auth initialized:', authInitialized);
+        console.log('Current user:', auth.currentUser);
+
+        // Wait for authentication to complete using the promise
+        let user = auth.currentUser;
+        if (!user) {
+            console.log('⏳ Waiting for authentication to complete...');
+            showToast('인증 중입니다...', 'success');
+
+            // Wait for the auth promise to resolve (with timeout)
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Authentication timeout')), 10000)
+            );
+
+            try {
+                user = await Promise.race([authReadyPromise, timeoutPromise]);
+
+                if (!user) {
+                    throw new Error('Authentication failed: No user returned');
+                }
+
+                console.log('✅ Authentication successful:', user.uid);
+            } catch (authError) {
+                console.error('❌ Authentication error:', authError);
+                showToast('로그인에 실패했습니다. 페이지를 새로고침하고 다시 시도해주세요.', 'error');
+
+                // Show additional debugging info
+                console.error('Firebase Auth Domain:', auth.config.authDomain);
+                console.error('Auth Error Details:', {
+                    code: authError.code,
+                    message: authError.message,
+                    stack: authError.stack
+                });
+
+                return;
+            }
+        }
+
+        console.log('📝 Uploading routines...');
+        console.log('Number of routine groups:', pendingUpload.length);
+
+        // Get title from preview input
+        const title = elements.previewTitle.value.trim();
+        console.log('Title:', title);
+
+        // Generate unique upload ID for this upload session
+        const uploadId = `${user.uid}_${Date.now()}`;
+        console.log('Upload ID:', uploadId);
+
         // Upload each routine group
         for (const group of pendingUpload) {
+            console.log('Uploading group:', group.dayOfWeek, group.timeType);
+
             const routineDoc = createRoutineDocument(
                 group.dayOfWeek,
                 group.timeType,
                 group.routines.map(r => r.name),
-                user.uid
+                user.uid,
+                title,
+                uploadId
             );
+
+            console.log('Document to upload:', routineDoc);
+
             await addDoc(collection(db, 'routines'), routineDoc);
+            console.log('✅ Uploaded successfully');
         }
 
         showToast(`${pendingUpload.length}개의 루틴이 성공적으로 공유되었습니다!`, 'success');
@@ -529,8 +816,24 @@ async function confirmUpload() {
         switchView('browse');
         loadRoutines();
     } catch (error) {
-        console.error('Error uploading routines:', error);
-        showToast('업로드 중 오류가 발생했습니다.', 'error');
+        console.error('❌ Error uploading routines:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+
+        let errorMessage = '업로드 중 오류가 발생했습니다';
+
+        // Provide more specific error messages
+        if (error.code === 'permission-denied') {
+            errorMessage = '권한이 거부되었습니다. Firebase 설정을 확인해주세요.';
+            console.error('💡 Hint: Check Firestore security rules and Authentication settings');
+        } else if (error.code === 'unavailable') {
+            errorMessage = 'Firebase 서버에 연결할 수 없습니다. 인터넷 연결을 확인해주세요.';
+        } else if (error.message) {
+            errorMessage += ': ' + error.message;
+        }
+
+        showToast(errorMessage, 'error');
     } finally {
         elements.confirmUploadBtn.disabled = false;
         elements.confirmUploadBtn.textContent = '확인 및 업로드';

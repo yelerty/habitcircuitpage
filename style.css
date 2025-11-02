@@ -63,6 +63,7 @@ body {
     text-align: center;
     margin-bottom: 32px;
     padding: 24px 0;
+    position: relative;
 }
 
 .header h1 {
@@ -74,6 +75,52 @@ body {
 .subtitle {
     color: var(--text-secondary);
     font-size: 1rem;
+}
+
+.auth-status {
+    position: absolute;
+    top: 24px;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg-primary);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--bg-tertiary);
+}
+
+.auth-status-indicator {
+    font-size: 1rem;
+}
+
+.auth-status.authenticated .auth-status-indicator {
+    animation: none;
+}
+
+.auth-status.loading .auth-status-indicator {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.auth-status.error {
+    background: #ffebee;
+    color: #c62828;
+    border-color: #ef5350;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@media (max-width: 768px) {
+    .auth-status {
+        position: static;
+        margin: 16px auto 0;
+        width: fit-content;
+    }
 }
 
 /* ===== Tabs Navigation ===== */
@@ -163,8 +210,16 @@ body {
 /* ===== Routines Grid ===== */
 .routines-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+@media (max-width: 968px) {
+    .routines-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .loading {
@@ -601,6 +656,340 @@ textarea.form-control {
     }
 }
 
+/* ===== User Cards ===== */
+.user-card {
+    background: var(--bg-primary);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    cursor: pointer;
+    transition: var(--transition);
+    border: 2px solid transparent;
+}
+
+.user-card:hover {
+    box-shadow: var(--shadow-hover);
+    border-color: var(--color-primary);
+    transform: translateY(-4px);
+}
+
+.user-card-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.user-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    flex-shrink: 0;
+}
+
+.user-info {
+    flex: 1;
+}
+
+.user-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.user-stats {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.user-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid var(--bg-tertiary);
+}
+
+.upload-date {
+    font-size: 0.85rem;
+    color: var(--text-tertiary);
+}
+
+.total-likes {
+    font-size: 0.95rem;
+    color: var(--color-danger);
+    font-weight: 600;
+}
+
+/* ===== Modal for User Routines ===== */
+.user-routines-modal {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.modal-routines {
+    margin-top: 16px;
+}
+
+/* ===== Day Routine Groups (in Modal) ===== */
+.day-routine-group {
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.day-routine-group-header {
+    padding: 16px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    color: white;
+    transition: var(--transition);
+}
+
+.day-routine-group-header:hover {
+    opacity: 0.9;
+}
+
+.day-routine-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.day-routine-content {
+    padding: 16px 20px;
+}
+
+.routine-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.routine-list-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    transition: var(--transition);
+}
+
+.routine-list-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.time-icon {
+    font-size: 1.2rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.time-icon.morning {
+    background: var(--color-morning);
+}
+
+.time-icon.afternoon {
+    background: var(--color-afternoon);
+}
+
+.time-icon.evening {
+    background: var(--color-evening);
+}
+
+.show-more-items {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.day-routine-group:not(.collapsed) .show-more-items {
+    max-height: 2000px;
+    margin-top: 12px;
+}
+
+.day-routine-group:not(.collapsed) .show-more-items .routine-list-item {
+    margin-bottom: 12px;
+}
+
+.day-routine-group.collapsed .day-routine-content {
+    max-height: 0;
+    padding: 0 20px;
+    overflow: hidden;
+}
+
+.day-routine-group.collapsed .expand-icon {
+    transform: rotate(-90deg);
+}
+
+/* ===== Day Groups ===== */
+.day-group {
+    background: var(--bg-primary);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.day-group-header {
+    padding: 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    color: white;
+    transition: var(--transition);
+}
+
+.day-group-header:hover {
+    opacity: 0.9;
+}
+
+.day-group-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.day-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.routine-count {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 12px;
+    border-radius: 12px;
+}
+
+.expand-icon {
+    font-size: 1.2rem;
+    transition: transform 0.3s ease;
+}
+
+.day-group.collapsed .expand-icon {
+    transform: rotate(-90deg);
+}
+
+.day-group-content {
+    padding: 16px;
+    max-height: 2000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.day-group.collapsed .day-group-content {
+    max-height: 0;
+    padding: 0 16px;
+}
+
+/* ===== Time Groups ===== */
+.time-group {
+    margin-bottom: 16px;
+    border: 2px solid var(--bg-tertiary);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.time-group-header {
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-secondary);
+    transition: var(--transition);
+}
+
+.time-group-header:hover {
+    background: var(--bg-tertiary);
+}
+
+.time-badge {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.time-badge.morning {
+    background: var(--color-morning);
+    color: white;
+}
+
+.time-badge.afternoon {
+    background: var(--color-afternoon);
+    color: #333;
+}
+
+.time-badge.evening {
+    background: var(--color-evening);
+    color: white;
+}
+
+.time-routine-count {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.expand-icon-small {
+    margin-left: auto;
+    font-size: 0.9rem;
+    transition: transform 0.3s ease;
+}
+
+.time-group.collapsed .expand-icon-small {
+    transform: rotate(-90deg);
+}
+
+.time-group-content {
+    padding: 12px;
+    max-height: 2000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.time-group.collapsed .time-group-content {
+    max-height: 0;
+    padding: 0 12px;
+}
+
+.time-group-content .routine-card {
+    margin-bottom: 12px;
+}
+
+.time-group-content .routine-card:last-child {
+    margin-bottom: 0;
+}
+
 /* ===== Responsive Design ===== */
 @media (max-width: 768px) {
     .container {
@@ -625,5 +1014,13 @@ textarea.form-control {
 
     .modal-content {
         padding: 24px;
+    }
+
+    .day-name {
+        font-size: 1.25rem;
+    }
+
+    .routine-count {
+        font-size: 0.8rem;
     }
 }

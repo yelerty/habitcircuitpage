@@ -12,6 +12,10 @@
         <header class="header">
             <h1>🔄 루틴 공유 커뮤니티</h1>
             <p class="subtitle">다른 사람들의 일상 루틴을 둘러보고 공유하세요</p>
+            <div id="auth-status" class="auth-status">
+                <span class="auth-status-indicator">⏳</span>
+                <span class="auth-status-text">인증 중...</span>
+            </div>
         </header>
 
         <!-- Navigation Tabs -->
@@ -92,6 +96,17 @@
                 <div id="manual-upload-method" class="upload-method">
                     <form id="manual-form" class="manual-form">
                         <div class="form-group">
+                            <label for="manual-title">제목 (선택)</label>
+                            <input
+                                type="text"
+                                id="manual-title"
+                                class="form-control"
+                                maxlength="10"
+                                placeholder="예: 건강한 하루, 생산적인 루틴 (최대 10자)"
+                            />
+                            <small class="form-hint">제목을 입력하지 않으면 '익명 사용자의 일주일 루틴'으로 표시됩니다</small>
+                        </div>
+                        <div class="form-group">
                             <label for="manual-day">요일 *</label>
                             <select id="manual-day" required class="form-control">
                                 <option value="">선택하세요</option>
@@ -133,6 +148,17 @@
                 <!-- Preview before upload -->
                 <div id="upload-preview" class="upload-preview hidden">
                     <h3>미리보기</h3>
+                    <div class="form-group">
+                        <label for="preview-title">제목 (선택)</label>
+                        <input
+                            type="text"
+                            id="preview-title"
+                            class="form-control"
+                            maxlength="10"
+                            placeholder="예: 건강한 하루, 생산적인 루틴 (최대 10자)"
+                        />
+                        <small class="form-hint">제목을 입력하지 않으면 '익명 사용자의 일주일 루틴'으로 표시됩니다</small>
+                    </div>
                     <div id="preview-content"></div>
                     <div class="preview-actions">
                         <button class="btn-primary" id="confirm-upload-btn">확인 및 업로드</button>
@@ -155,7 +181,7 @@
     <div id="toast" class="toast hidden"></div>
 
     <!-- Firebase SDK -->
-    <script type="module" src="firebase.js"></script>
-    <script type="module" src="app.js"></script>
+    <script type="module" src="firebase.js?v=9"></script>
+    <script type="module" src="app.js?v=9"></script>
 </body>
 </html>
