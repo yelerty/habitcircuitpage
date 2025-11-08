@@ -1024,3 +1024,95 @@ textarea.form-control {
         font-size: 0.8rem;
     }
 }
+
+/* ===== Form Actions ===== */
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.form-actions button {
+    flex: 1;
+}
+
+/* ===== Added Routines List ===== */
+.added-routines-list {
+    margin-top: 24px;
+    padding: 20px;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    border: 2px dashed var(--color-primary);
+}
+
+.added-routines-list h4 {
+    margin-bottom: 16px;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.added-routine-item {
+    background: var(--bg-primary);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 1px solid var(--bg-tertiary);
+}
+
+.added-routine-item:last-child {
+    margin-bottom: 0;
+}
+
+.added-routine-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.added-routine-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.btn-remove {
+    background: var(--color-danger);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.btn-remove:hover {
+    background: #CC0000;
+    transform: scale(1.1);
+}
+
+.added-routine-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.routine-tag {
+    display: inline-block;
+    padding: 4px 10px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}

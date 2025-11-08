@@ -117,10 +117,21 @@
                             ></textarea>
                             <small class="form-hint">각 줄에 하나씩 입력하면 순서대로 저장됩니다</small>
                         </div>
-                        <button type="submit" class="btn-primary" id="manual-submit-btn">
-                            공유하기
-                        </button>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-secondary" id="manual-add-btn">
+                                ➕ 루틴 추가
+                            </button>
+                            <button type="button" class="btn-primary" id="manual-done-btn" disabled>
+                                완료 및 미리보기
+                            </button>
+                        </div>
                     </form>
+
+                    <!-- Added Routines List -->
+                    <div id="added-routines-list" class="added-routines-list hidden">
+                        <h4>추가된 루틴</h4>
+                        <div id="added-routines-content"></div>
+                    </div>
                 </div>
 
                 <!-- Preview before upload -->

@@ -83,7 +83,10 @@ const elements = {
     manualDay: document.getElementById('manual-day'),
     manualTime: document.getElementById('manual-time'),
     manualRoutines: document.getElementById('manual-routines'),
-    manualSubmitBtn: document.getElementById('manual-submit-btn'),
+    manualAddBtn: document.getElementById('manual-add-btn'),
+    manualDoneBtn: document.getElementById('manual-done-btn'),
+    addedRoutinesList: document.getElementById('added-routines-list'),
+    addedRoutinesContent: document.getElementById('added-routines-content'),
 
     // Preview title
     previewTitle: document.getElementById('preview-title'),
@@ -180,6 +183,7 @@ function initializeEventListeners() {
 
     // Manual form
     elements.manualForm.addEventListener('submit', handleManualSubmit);
+    elements.manualDoneBtn.addEventListener('click', handleManualDone);
 
     // Upload preview
     elements.confirmUploadBtn.addEventListener('click', confirmUpload);
@@ -689,7 +693,6 @@ function handleManualSubmit(e) {
     const day = elements.manualDay.value;
     const time = elements.manualTime.value;
     const routinesText = elements.manualRoutines.value.trim();
-    const title = elements.manualTitle.value.trim(); // Get title from manual form
 
     if (!day || !time || !routinesText) {
         showToast('모든 필드를 입력해주세요.', 'error');
@@ -706,19 +709,87 @@ function handleManualSubmit(e) {
         return;
     }
 
-    pendingUpload = [{
+    // Initialize pendingUpload if it doesn't exist
+    if (!pendingUpload) {
+        pendingUpload = [];
+    }
+
+    // Add the new routine to pending upload
+    pendingUpload.push({
         dayOfWeek: day,
         timeType: time,
         routines: routines.map((name, index) => ({
             name,
             order: index + 1
         }))
-    }];
+    });
 
-    // Set the title in preview input so it will be used during upload
+    // Clear the routines textarea for next input
+    elements.manualRoutines.value = '';
+
+    // Show success message
+    showToast(`${day} ${time} 루틴이 추가되었습니다!`, 'success');
+
+    // Update the added routines list
+    updateAddedRoutinesList();
+
+    // Enable the done button
+    elements.manualDoneBtn.disabled = false;
+}
+
+function handleManualDone() {
+    if (!pendingUpload || pendingUpload.length === 0) {
+        showToast('추가된 루틴이 없습니다.', 'error');
+        return;
+    }
+
+    // Get title from manual form
+    const title = elements.manualTitle.value.trim();
     elements.previewTitle.value = title;
 
     showUploadPreview(pendingUpload);
+}
+
+function updateAddedRoutinesList() {
+    if (!pendingUpload || pendingUpload.length === 0) {
+        elements.addedRoutinesList.classList.add('hidden');
+        return;
+    }
+
+    elements.addedRoutinesList.classList.remove('hidden');
+
+    const html = pendingUpload.map((item, index) => {
+        const timeIcon = TIME_TYPES[item.timeType]?.icon || '';
+        const routinesList = item.routines.map(r => r.name).join(', ');
+
+        return `
+            <div class="added-routine-item">
+                <div class="added-routine-header">
+                    <span class="added-routine-badge">${item.dayOfWeek} ${timeIcon} ${item.timeType}</span>
+                    <button class="btn-remove" onclick="removeAddedRoutine(${index})">✕</button>
+                </div>
+                <div class="added-routine-content">
+                    ${item.routines.map(r => `<span class="routine-tag">${r.name}</span>`).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    elements.addedRoutinesContent.innerHTML = html;
+}
+
+// Make removeAddedRoutine globally available
+window.removeAddedRoutine = function(index) {
+    if (pendingUpload && pendingUpload.length > index) {
+        const removed = pendingUpload.splice(index, 1)[0];
+        showToast(`${removed.dayOfWeek} ${removed.timeType} 루틴이 삭제되었습니다.`, 'info');
+        updateAddedRoutinesList();
+
+        // Disable done button if no routines left
+        if (pendingUpload.length === 0) {
+            elements.manualDoneBtn.disabled = true;
+        }
+    }
 }
 
 // ===== Upload Confirmation =====
@@ -845,6 +916,9 @@ function resetUploadForms() {
     elements.filePreview.classList.add('hidden');
     elements.manualForm.reset();
     elements.uploadPreview.classList.add('hidden');
+    elements.addedRoutinesList.classList.add('hidden');
+    elements.addedRoutinesContent.innerHTML = '';
+    elements.manualDoneBtn.disabled = true;
     pendingUpload = null;
 }
 
