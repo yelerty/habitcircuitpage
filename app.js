@@ -49,8 +49,6 @@ const createRoutineDocument = (dayOfWeek, timeType, routines, userId, title = ''
 // ===== State Management =====
 let currentRoutines = [];
 let currentFilters = {
-    day: '',
-    time: '',
     sort: 'recent'
 };
 let pendingUpload = null;
@@ -63,8 +61,6 @@ const elements = {
     uploadView: document.getElementById('upload-view'),
 
     // Filters
-    dayFilter: document.getElementById('day-filter'),
-    timeFilter: document.getElementById('time-filter'),
     sortFilter: document.getElementById('sort-filter'),
 
     // Routines Container
@@ -168,8 +164,6 @@ function initializeEventListeners() {
     });
 
     // Filters
-    elements.dayFilter.addEventListener('change', handleFilterChange);
-    elements.timeFilter.addEventListener('change', handleFilterChange);
     elements.sortFilter.addEventListener('change', handleFilterChange);
 
     // Upload method tabs
@@ -237,13 +231,6 @@ async function loadRoutines() {
         // Build query
         let q = collection(db, 'routines');
         const constraints = [];
-
-        if (currentFilters.day) {
-            constraints.push(where('dayOfWeek', '==', currentFilters.day));
-        }
-        if (currentFilters.time) {
-            constraints.push(where('timeType', '==', currentFilters.time));
-        }
 
         // Sort
         if (currentFilters.sort === 'popular') {
@@ -847,8 +834,6 @@ function cancelUpload() {
 
 // ===== Filter Handlers =====
 function handleFilterChange() {
-    currentFilters.day = elements.dayFilter.value;
-    currentFilters.time = elements.timeFilter.value;
     currentFilters.sort = elements.sortFilter.value;
     loadRoutines();
 }
