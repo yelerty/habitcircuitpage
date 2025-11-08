@@ -577,9 +577,17 @@ function showRoutineDetail(routineId) {
                 </span>
             </div>
         </div>
-        <button class="btn-primary" style="width: 100%; margin-top: 20px;" onclick="copyRoutineJSON('${routineId}')">
-            JSON 복사하기
-        </button>
+        <div style="display: flex; gap: 12px; margin-top: 20px;">
+            <button class="btn-secondary" style="flex: 1;" onclick="copyRoutineJSON('${routineId}')">
+                📋 JSON 복사
+            </button>
+            <button class="btn-primary" style="flex: 1;" onclick="downloadRoutineJSON('${routineId}')">
+                📥 다운로드
+            </button>
+        </div>
+        <p style="margin-top: 12px; font-size: 0.85rem; color: var(--text-tertiary); text-align: center;">
+            다운로드한 파일을 HabitCircuit 앱에서 가져오기 할 수 있습니다
+        </p>
     `;
 
     elements.modal.classList.remove('hidden');
@@ -952,11 +960,9 @@ function showToast(message, type = 'success') {
 }
 
 // ===== Global Functions for Modal =====
-window.copyRoutineJSON = function(routineId) {
-    const routine = currentRoutines.find(r => r.id === routineId);
-    if (!routine) return;
-
-    const exportData = {
+// Helper function to create iOS-compatible export data
+function createExportData(routine) {
+    return {
         version: routine.version || '1.0',
         exportDate: new Date().toISOString(),
         routines: routine.routines.map(r => ({
@@ -966,6 +972,13 @@ window.copyRoutineJSON = function(routineId) {
             order: r.order
         }))
     };
+}
+
+window.copyRoutineJSON = function(routineId) {
+    const routine = currentRoutines.find(r => r.id === routineId);
+    if (!routine) return;
+
+    const exportData = createExportData(routine);
 
     navigator.clipboard.writeText(JSON.stringify(exportData, null, 2))
         .then(() => {
@@ -975,4 +988,32 @@ window.copyRoutineJSON = function(routineId) {
         .catch(() => {
             showToast('복사 중 오류가 발생했습니다.', 'error');
         });
+};
+
+window.downloadRoutineJSON = function(routineId) {
+    const routine = currentRoutines.find(r => r.id === routineId);
+    if (!routine) return;
+
+    const exportData = createExportData(routine);
+    const jsonString = JSON.stringify(exportData, null, 2);
+
+    // Create blob and download
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+
+    // Generate filename with date
+    const dateStr = new Date().toISOString().split('T')[0];
+    const fileName = `HabitCircuit-${routine.dayOfWeek}-${routine.timeType}-${dateStr}.json`;
+    a.download = fileName;
+
+    // Trigger download
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast('루틴이 다운로드되었습니다! 앱에서 가져오기 하세요.', 'success');
+    closeModal();
 };
