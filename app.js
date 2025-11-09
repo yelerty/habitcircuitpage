@@ -324,23 +324,28 @@ async function likeRoutine(routineId) {
 
 async function likeUserRoutines(userId, routines) {
     try {
-        // Like all routines for this user
-        const likePromises = routines.map(routine => {
-            const routineRef = doc(db, 'routines', routine.id);
-            return updateDoc(routineRef, {
-                likes: increment(1)
-            });
+        // Check if already liked today
+        const likedToday = checkIfLikedToday(userId);
+        if (likedToday) {
+            showToast('오늘 이미 좋아요를 누르셨습니다. 내일 다시 시도해주세요!', 'error');
+            return;
+        }
+
+        // Like only the first routine (representing the whole user's routine set)
+        const firstRoutine = routines[0];
+        const routineRef = doc(db, 'routines', firstRoutine.id);
+        await updateDoc(routineRef, {
+            likes: increment(1)
         });
 
-        await Promise.all(likePromises);
+        // Update local state for the first routine
+        const localRoutine = currentRoutines.find(r => r.id === firstRoutine.id);
+        if (localRoutine) {
+            localRoutine.likes = (localRoutine.likes || 0) + 1;
+        }
 
-        // Update local state
-        routines.forEach(routine => {
-            const localRoutine = currentRoutines.find(r => r.id === routine.id);
-            if (localRoutine) {
-                localRoutine.likes = (localRoutine.likes || 0) + 1;
-            }
-        });
+        // Mark as liked today
+        markAsLikedToday(userId);
 
         renderRoutines();
         showToast('❤️ 좋아요!', 'success');
@@ -348,6 +353,21 @@ async function likeUserRoutines(userId, routines) {
         console.error('Error liking routines:', error);
         showToast('좋아요 처리 중 오류가 발생했습니다.', 'error');
     }
+}
+
+// Check if user already liked this routine today
+function checkIfLikedToday(userId) {
+    const today = new Date().toDateString();
+    const likedData = JSON.parse(localStorage.getItem('likedRoutines') || '{}');
+    return likedData[userId] === today;
+}
+
+// Mark routine as liked today
+function markAsLikedToday(userId) {
+    const today = new Date().toDateString();
+    const likedData = JSON.parse(localStorage.getItem('likedRoutines') || '{}');
+    likedData[userId] = today;
+    localStorage.setItem('likedRoutines', JSON.stringify(likedData));
 }
 
 // ===== Render Functions =====
@@ -412,6 +432,15 @@ function createUserCard(userId, routines) {
     // Get title (use first routine's title, or default)
     const title = routines[0]?.title || '익명 사용자의 일주일 루틴';
 
+    // Check if already liked today
+    const likedToday = checkIfLikedToday(userId);
+    const heartStyle = likedToday
+        ? 'cursor: not-allowed; opacity: 0.5;'
+        : 'cursor: pointer; transition: transform 0.2s;';
+    const heartHover = likedToday
+        ? ''
+        : 'onmouseover="this.style.transform=\'scale(1.2)\'" onmouseout="this.style.transform=\'scale(1)\'"';
+
     return `
         <div class="user-card" data-user-id="${userId}">
             <div class="user-card-header">
@@ -423,10 +452,8 @@ function createUserCard(userId, routines) {
             </div>
             <div class="user-card-footer">
                 <span class="upload-date">${formatDate(latestDate)}</span>
-                <span class="total-likes" style="cursor: pointer; transition: transform 0.2s;"
-                      onmouseover="this.style.transform='scale(1.2)'"
-                      onmouseout="this.style.transform='scale(1)'">
-                    ❤️ ${totalLikes}
+                <span class="total-likes" style="${heartStyle}" ${heartHover}>
+                    ${likedToday ? '💔' : '❤️'} ${totalLikes}
                 </span>
             </div>
         </div>
