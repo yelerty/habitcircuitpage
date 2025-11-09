@@ -11,6 +11,7 @@ import {
     orderBy,
     doc,
     updateDoc,
+    deleteDoc,
     increment,
     serverTimestamp
 } from './firebase.js';
@@ -424,6 +425,11 @@ function showUserRoutines(userId, routines) {
                 </button>
                 <button class="btn-primary" style="flex: 1;" onclick="downloadAllUserRoutines('${userId}')">
                     📥 다운로드
+                </button>
+            </div>
+            <div style="margin-top: 12px;">
+                <button class="btn-secondary" style="width: 100%; background: var(--color-danger); color: white;" onclick="deleteUserRoutines('${userId}')">
+                    🗑️ 삭제하기
                 </button>
             </div>
             <p style="margin-top: 12px; font-size: 0.85rem; color: var(--text-tertiary); text-align: center;">
@@ -1137,6 +1143,57 @@ window.editUserRoutines = function(userId) {
         // TODO: Implement edit functionality
         // For now, just show a message
         alert('수정 기능은 현재 개발 중입니다.\n\n대신 다음 방법을 사용하세요:\n1. 📥 다운로드 버튼으로 루틴 다운로드\n2. 삭제 후 재업로드');
+    }).catch(error => {
+        console.error('Password verification error:', error);
+        showToast('비밀번호 확인 중 오류가 발생했습니다.', 'error');
+    });
+};
+
+window.deleteUserRoutines = function(userId) {
+    const routines = currentUserRoutines[userId];
+    if (!routines || routines.length === 0) return;
+
+    // Confirm deletion
+    const confirmDelete = confirm('정말로 이 루틴을 삭제하시겠습니까?\n삭제된 루틴은 복구할 수 없습니다.');
+    if (!confirmDelete) return;
+
+    // Prompt for password
+    const password = prompt('삭제하려면 비밀번호 4자리를 입력하세요:');
+    if (!password) return;
+
+    if (password.length !== 4 || !/^\d{4}$/.test(password)) {
+        showToast('비밀번호는 4자리 숫자여야 합니다.', 'error');
+        return;
+    }
+
+    // Verify password and delete
+    hashPassword(password).then(async (inputHash) => {
+        const firstRoutine = routines[0];
+        if (firstRoutine.passwordHash !== inputHash) {
+            showToast('비밀번호가 일치하지 않습니다.', 'error');
+            return;
+        }
+
+        // Password verified, proceed with deletion
+        try {
+            showToast('루틴 삭제 중...', 'success');
+
+            // Delete all routines for this user
+            const deletePromises = routines.map(routine =>
+                deleteDoc(doc(db, 'routines', routine.id))
+            );
+
+            await Promise.all(deletePromises);
+
+            showToast(`${routines.length}개의 루틴이 삭제되었습니다.`, 'success');
+            closeModal();
+
+            // Refresh the routines list
+            loadRoutines();
+        } catch (error) {
+            console.error('Error deleting routines:', error);
+            showToast('루틴 삭제 중 오류가 발생했습니다.', 'error');
+        }
     }).catch(error => {
         console.error('Password verification error:', error);
         showToast('비밀번호 확인 중 오류가 발생했습니다.', 'error');

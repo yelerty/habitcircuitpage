@@ -1,7 +1,7 @@
 // Firebase SDK imports
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
-import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, limit, doc, updateDoc, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, limit, doc, updateDoc, deleteDoc, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 
 // Firebase project configuration from GoogleService-Info.plist
 const firebaseConfig = {
@@ -60,6 +60,7 @@ export {
     limit,
     doc,
     updateDoc,
+    deleteDoc,
     increment,
     serverTimestamp
 };
