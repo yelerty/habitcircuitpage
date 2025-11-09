@@ -503,8 +503,8 @@ function showUserRoutines(userId, routines) {
                 </button>
             </div>
             <p style="margin-top: 12px; font-size: 0.85rem; color: var(--text-tertiary); text-align: center;">
-                📥 다운로드 후 파일 앱의 "HabitCircuit" 폴더로 이동하면<br>
-                앱에서 쉽게 가져올 수 있습니다
+                📥 다운로드 후 파일을 "HabitCircuit"으로 열기하면<br>
+                자동으로 앱에서 가져오기됩니다
             </p>
         </div>
     `;
@@ -1188,7 +1188,7 @@ window.downloadAllUserRoutines = function(userId) {
     // Show detailed instructions
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
     if (isIOS) {
-        alert(`✅ 다운로드 완료: ${fileName}\n\n📁 파일을 쉽게 찾으려면:\n1. 파일 앱 열기\n2. "다운로드" 폴더에서 파일 찾기\n3. 파일을 길게 누르기 → "이동" 선택\n4. "HabitCircuit" 폴더로 이동\n\n📱 앱에서 가져오기:\n1. HabitCircuit 앱 열기\n2. 설정 → "루틴 가져오기"\n3. "HabitCircuit" 폴더에서 파일 선택\n\n💡 HabitCircuit 폴더에 저장하면 다음부터 더 쉽게 찾을 수 있습니다!`);
+        alert(`✅ 다운로드 완료: ${fileName}\n\n⚡️ 빠른 방법 (추천):\n1. Safari 하단의 다운로드 아이콘 (↓) 탭\n2. 방금 다운로드한 파일 탭\n3. 공유 버튼 탭 (□↑)\n4. "HabitCircuit"으로 열기 선택\n→ 앱이 자동으로 열리며 루틴이 추가됩니다!\n\n📁 또는 파일 앱 사용:\n1. 파일 앱 → "다운로드" 폴더\n2. 파일 탭하여 미리보기\n3. 공유 버튼 → "HabitCircuit"으로 열기\n\n💡 파일을 HabitCircuit 앱으로 바로 열면 자동으로 가져오기됩니다!`);
     } else {
         showToast('전체 루틴이 다운로드되었습니다! 앱에서 가져오기 하세요.', 'success');
     }
