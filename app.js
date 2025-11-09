@@ -52,6 +52,7 @@ let currentFilters = {
     sort: 'recent'
 };
 let pendingUpload = null;
+let currentUserRoutines = {}; // Store routines by userId for download
 
 // ===== DOM Elements =====
 const elements = {
@@ -377,6 +378,9 @@ function createUserCard(userId, routines) {
 }
 
 function showUserRoutines(userId, routines) {
+    // Store for download function
+    currentUserRoutines[userId] = routines;
+
     // Group by day
     const groupedByDay = {};
     routines.forEach(routine => {
@@ -402,6 +406,14 @@ function showUserRoutines(userId, routines) {
             <div class="modal-routines">
                 ${html}
             </div>
+            <div style="display: flex; gap: 12px; margin-top: 20px;">
+                <button class="btn-primary" style="flex: 1;" onclick="downloadAllUserRoutines('${userId}')">
+                    📥 전체 다운로드
+                </button>
+            </div>
+            <p style="margin-top: 12px; font-size: 0.85rem; color: var(--text-tertiary); text-align: center;">
+                다운로드한 파일을 HabitCircuit 앱에서 가져오기 할 수 있습니다
+            </p>
         </div>
     `;
 
@@ -1015,5 +1027,52 @@ window.downloadRoutineJSON = function(routineId) {
     URL.revokeObjectURL(url);
 
     showToast('루틴이 다운로드되었습니다! 앱에서 가져오기 하세요.', 'success');
+    closeModal();
+};
+
+window.downloadAllUserRoutines = function(userId) {
+    const routines = currentUserRoutines[userId];
+    if (!routines || routines.length === 0) return;
+
+    // Convert all routines to export format
+    const allExportRoutines = [];
+    routines.forEach(routine => {
+        routine.routines.forEach(item => {
+            allExportRoutines.push({
+                name: item.name,
+                dayOfWeek: routine.dayOfWeek,
+                timeType: routine.timeType,
+                order: item.order
+            });
+        });
+    });
+
+    const exportData = {
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        routines: allExportRoutines
+    };
+
+    const jsonString = JSON.stringify(exportData, null, 2);
+
+    // Create blob and download
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+
+    // Generate filename with date and title
+    const dateStr = new Date().toISOString().split('T')[0];
+    const title = (routines[0]?.title || '루틴모음').replace(/[^a-zA-Z0-9가-힣]/g, '-');
+    const fileName = `HabitCircuit-${title}-${dateStr}.json`;
+    a.download = fileName;
+
+    // Trigger download
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast('전체 루틴이 다운로드되었습니다! 앱에서 가져오기 하세요.', 'success');
     closeModal();
 };
