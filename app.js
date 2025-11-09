@@ -25,7 +25,7 @@ const TIME_TYPES = {
 
 // ===== Data Schema Matching iOS App =====
 // This matches the RoutineExportData structure from iOS
-const createRoutineDocument = (dayOfWeek, timeType, routines, userId, title = '', uploadId = '') => {
+const createRoutineDocument = (dayOfWeek, timeType, routines, userId, title = '', uploadId = '', passwordHash = '') => {
     return {
         version: '1.0',
         dayOfWeek: dayOfWeek,
@@ -39,6 +39,7 @@ const createRoutineDocument = (dayOfWeek, timeType, routines, userId, title = ''
         createdAt: serverTimestamp(),
         likes: 0,
         title: title || '', // Optional title
+        passwordHash: passwordHash, // For edit authentication
         metadata: {
             platform: 'Web',
             uploadDate: new Date().toISOString()
@@ -53,6 +54,16 @@ let currentFilters = {
 };
 let pendingUpload = null;
 let currentUserRoutines = {}; // Store routines by userId for download
+let uploadPassword = ''; // Store password for current upload session
+
+// ===== Simple Password Hash =====
+async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 // ===== DOM Elements =====
 const elements = {
@@ -84,6 +95,7 @@ const elements = {
     manualDay: document.getElementById('manual-day'),
     manualTime: document.getElementById('manual-time'),
     manualRoutines: document.getElementById('manual-routines'),
+    manualPassword: document.getElementById('manual-password'),
     manualAddBtn: document.getElementById('manual-add-btn'),
     manualDoneBtn: document.getElementById('manual-done-btn'),
     addedRoutinesList: document.getElementById('added-routines-list'),
@@ -407,8 +419,11 @@ function showUserRoutines(userId, routines) {
                 ${html}
             </div>
             <div style="display: flex; gap: 12px; margin-top: 20px;">
+                <button class="btn-secondary" style="flex: 1;" onclick="editUserRoutines('${userId}')">
+                    ✏️ 수정하기
+                </button>
                 <button class="btn-primary" style="flex: 1;" onclick="downloadAllUserRoutines('${userId}')">
-                    📥 전체 다운로드
+                    📥 다운로드
                 </button>
             </div>
             <p style="margin-top: 12px; font-size: 0.85rem; color: var(--text-tertiary); text-align: center;">
@@ -713,9 +728,15 @@ function handleManualSubmit(e) {
     const day = elements.manualDay.value;
     const time = elements.manualTime.value;
     const routinesText = elements.manualRoutines.value.trim();
+    const password = elements.manualPassword.value;
 
-    if (!day || !time || !routinesText) {
+    if (!day || !time || !routinesText || !password) {
         showToast('모든 필드를 입력해주세요.', 'error');
+        return;
+    }
+
+    if (password.length !== 4 || !/^\d{4}$/.test(password)) {
+        showToast('비밀번호는 4자리 숫자여야 합니다.', 'error');
         return;
     }
 
@@ -726,6 +747,14 @@ function handleManualSubmit(e) {
 
     if (routines.length === 0) {
         showToast('최소 1개 이상의 루틴을 입력해주세요.', 'error');
+        return;
+    }
+
+    // Store password for this upload session (first time only)
+    if (!uploadPassword) {
+        uploadPassword = password;
+    } else if (uploadPassword !== password) {
+        showToast('처음 입력한 비밀번호와 같아야 합니다.', 'error');
         return;
     }
 
@@ -870,6 +899,10 @@ async function confirmUpload() {
         const uploadId = `${user.uid}_${Date.now()}`;
         console.log('Upload ID:', uploadId);
 
+        // Hash the password
+        const passwordHash = await hashPassword(uploadPassword);
+        console.log('Password hashed');
+
         // Upload each routine group
         for (const group of pendingUpload) {
             console.log('Uploading group:', group.dayOfWeek, group.timeType);
@@ -880,7 +913,8 @@ async function confirmUpload() {
                 group.routines.map(r => r.name),
                 user.uid,
                 title,
-                uploadId
+                uploadId,
+                passwordHash
             );
 
             console.log('Document to upload:', routineDoc);
@@ -940,6 +974,7 @@ function resetUploadForms() {
     elements.addedRoutinesContent.innerHTML = '';
     elements.manualDoneBtn.disabled = true;
     pendingUpload = null;
+    uploadPassword = ''; // Reset password
 }
 
 function formatDate(timestamp) {
@@ -1075,4 +1110,35 @@ window.downloadAllUserRoutines = function(userId) {
 
     showToast('전체 루틴이 다운로드되었습니다! 앱에서 가져오기 하세요.', 'success');
     closeModal();
+};
+
+window.editUserRoutines = function(userId) {
+    const routines = currentUserRoutines[userId];
+    if (!routines || routines.length === 0) return;
+
+    // Prompt for password
+    const password = prompt('수정하려면 비밀번호 4자리를 입력하세요:');
+    if (!password) return;
+
+    if (password.length !== 4 || !/^\d{4}$/.test(password)) {
+        showToast('비밀번호는 4자리 숫자여야 합니다.', 'error');
+        return;
+    }
+
+    // Verify password
+    hashPassword(password).then(async (inputHash) => {
+        const firstRoutine = routines[0];
+        if (firstRoutine.passwordHash !== inputHash) {
+            showToast('비밀번호가 일치하지 않습니다.', 'error');
+            return;
+        }
+
+        showToast('비밀번호 확인 완료! 수정 기능은 곧 추가됩니다.', 'success');
+        // TODO: Implement edit functionality
+        // For now, just show a message
+        alert('수정 기능은 현재 개발 중입니다.\n\n대신 다음 방법을 사용하세요:\n1. 📥 다운로드 버튼으로 루틴 다운로드\n2. 삭제 후 재업로드');
+    }).catch(error => {
+        console.error('Password verification error:', error);
+        showToast('비밀번호 확인 중 오류가 발생했습니다.', 'error');
+    });
 };
