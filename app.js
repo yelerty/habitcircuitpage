@@ -503,8 +503,8 @@ function showUserRoutines(userId, routines) {
                 </button>
             </div>
             <p style="margin-top: 12px; font-size: 0.85rem; color: var(--text-tertiary); text-align: center;">
-                📥 다운로드 후 HabitCircuit 앱의 "설정 → 루틴 가져오기"에서<br>
-                "다운로드" 폴더의 최신 파일을 선택하세요
+                📥 다운로드 후 파일 앱의 "HabitCircuit" 폴더로 이동하면<br>
+                앱에서 쉽게 가져올 수 있습니다
             </p>
         </div>
     `;
@@ -1188,7 +1188,7 @@ window.downloadAllUserRoutines = function(userId) {
     // Show detailed instructions
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
     if (isIOS) {
-        alert(`✅ 다운로드 완료: ${fileName}\n\n📱 앱에서 가져오는 방법:\n1. HabitCircuit 앱 열기\n2. 설정 → "루틴 가져오기" 선택\n3. "다운로드" 폴더에서 파일 찾기\n4. 가장 최근 파일 선택\n\n💡 파일 위치: 파일 앱 → 다운로드 폴더`);
+        alert(`✅ 다운로드 완료: ${fileName}\n\n📁 파일을 쉽게 찾으려면:\n1. 파일 앱 열기\n2. "다운로드" 폴더에서 파일 찾기\n3. 파일을 길게 누르기 → "이동" 선택\n4. "HabitCircuit" 폴더로 이동\n\n📱 앱에서 가져오기:\n1. HabitCircuit 앱 열기\n2. 설정 → "루틴 가져오기"\n3. "HabitCircuit" 폴더에서 파일 선택\n\n💡 HabitCircuit 폴더에 저장하면 다음부터 더 쉽게 찾을 수 있습니다!`);
     } else {
         showToast('전체 루틴이 다운로드되었습니다! 앱에서 가져오기 하세요.', 'success');
     }
