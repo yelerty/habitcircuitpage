@@ -1161,7 +1161,7 @@ window.deleteUserRoutines = function(userId) {
     if (!confirmDelete) return;
 
     // Prompt for password
-    const password = prompt('삭제하려면 비밀번호 4자리를 입력하세요:\n(관리자는 관리자 비밀번호 입력)');
+    const password = prompt('삭제하려면 비밀번호 4자리를 입력하세요:');
     if (!password) return;
 
     if (password.length !== 4 || !/^\d{4}$/.test(password)) {
