@@ -48,6 +48,9 @@ const createRoutineDocument = (dayOfWeek, timeType, routines, userId, title = ''
     };
 };
 
+// ===== Admin Configuration =====
+const ADMIN_PASSWORD = '0000'; // 관리자 비밀번호 (변경 가능)
+
 // ===== State Management =====
 let currentRoutines = [];
 let currentFilters = {
@@ -1158,7 +1161,7 @@ window.deleteUserRoutines = function(userId) {
     if (!confirmDelete) return;
 
     // Prompt for password
-    const password = prompt('삭제하려면 비밀번호 4자리를 입력하세요:');
+    const password = prompt('삭제하려면 비밀번호 4자리를 입력하세요:\n(관리자는 관리자 비밀번호 입력)');
     if (!password) return;
 
     if (password.length !== 4 || !/^\d{4}$/.test(password)) {
@@ -1166,7 +1169,14 @@ window.deleteUserRoutines = function(userId) {
         return;
     }
 
-    // Verify password and delete
+    // Check if admin password
+    if (password === ADMIN_PASSWORD) {
+        // Admin access - delete without verification
+        performDeletion(routines);
+        return;
+    }
+
+    // Verify user password and delete
     hashPassword(password).then(async (inputHash) => {
         const firstRoutine = routines[0];
         if (firstRoutine.passwordHash !== inputHash) {
@@ -1175,27 +1185,31 @@ window.deleteUserRoutines = function(userId) {
         }
 
         // Password verified, proceed with deletion
-        try {
-            showToast('루틴 삭제 중...', 'success');
-
-            // Delete all routines for this user
-            const deletePromises = routines.map(routine =>
-                deleteDoc(doc(db, 'routines', routine.id))
-            );
-
-            await Promise.all(deletePromises);
-
-            showToast(`${routines.length}개의 루틴이 삭제되었습니다.`, 'success');
-            closeModal();
-
-            // Refresh the routines list
-            loadRoutines();
-        } catch (error) {
-            console.error('Error deleting routines:', error);
-            showToast('루틴 삭제 중 오류가 발생했습니다.', 'error');
-        }
+        performDeletion(routines);
     }).catch(error => {
         console.error('Password verification error:', error);
         showToast('비밀번호 확인 중 오류가 발생했습니다.', 'error');
     });
 };
+
+async function performDeletion(routines) {
+    try {
+        showToast('루틴 삭제 중...', 'success');
+
+        // Delete all routines for this user
+        const deletePromises = routines.map(routine =>
+            deleteDoc(doc(db, 'routines', routine.id))
+        );
+
+        await Promise.all(deletePromises);
+
+        showToast(`${routines.length}개의 루틴이 삭제되었습니다.`, 'success');
+        closeModal();
+
+        // Refresh the routines list
+        loadRoutines();
+    } catch (error) {
+        console.error('Error deleting routines:', error);
+        showToast('루틴 삭제 중 오류가 발생했습니다.', 'error');
+    }
+}
