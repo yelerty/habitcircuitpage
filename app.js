@@ -493,8 +493,8 @@ function showUserRoutines(userId, routines) {
                 <button class="btn-secondary" style="flex: 1;" onclick="editUserRoutines('${userId}')">
                     ✏️ 수정하기
                 </button>
-                <button class="btn-primary" style="flex: 1;" onclick="downloadAllUserRoutines('${userId}')">
-                    📥 다운로드
+                <button class="btn-primary" style="flex: 1;" onclick="shareUserRoutines('${userId}')">
+                    📤 공유하기
                 </button>
             </div>
             <div style="margin-top: 12px;">
@@ -503,8 +503,8 @@ function showUserRoutines(userId, routines) {
                 </button>
             </div>
             <p style="margin-top: 12px; font-size: 0.85rem; color: var(--text-tertiary); text-align: center;">
-                📥 다운로드 후 파일을 "HabitCircuit"으로 열기하면<br>
-                자동으로 앱에서 가져오기됩니다
+                📤 공유하기를 누르면 HabitCircuit 앱으로<br>
+                바로 열거나 다른 곳에 공유할 수 있습니다
             </p>
         </div>
     `;
@@ -1142,7 +1142,7 @@ window.downloadRoutineJSON = function(routineId) {
     closeModal();
 };
 
-window.downloadAllUserRoutines = function(userId) {
+window.shareUserRoutines = async function(userId) {
     const routines = currentUserRoutines[userId];
     if (!routines || routines.length === 0) return;
 
@@ -1167,33 +1167,57 @@ window.downloadAllUserRoutines = function(userId) {
 
     const jsonString = JSON.stringify(exportData, null, 2);
 
-    // Create blob and download
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-
     // Generate filename with date and title
     const dateStr = new Date().toISOString().split('T')[0];
     const title = (routines[0]?.title || '루틴모음').replace(/[^a-zA-Z0-9가-힣]/g, '-');
     const fileName = `HabitCircuit-${title}-${dateStr}.json`;
-    a.download = fileName;
 
-    // Trigger download
+    // Create blob
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const file = new File([blob], fileName, { type: 'application/json' });
+
+    // Check if Web Share API is supported
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({
+                title: '루틴 공유하기',
+                text: `${routines[0]?.title || '루틴'} - HabitCircuit`,
+                files: [file]
+            });
+            showToast('공유 완료!', 'success');
+            closeModal();
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error('Share failed:', error);
+                // Fallback to download
+                fallbackDownload(blob, fileName);
+            }
+        }
+    } else {
+        // Fallback to download for non-supporting browsers
+        fallbackDownload(blob, fileName);
+    }
+};
+
+// Fallback download function
+function fallbackDownload(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    // Show detailed instructions
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
     if (isIOS) {
-        alert(`✅ 다운로드 완료: ${fileName}\n\n⚡️ 빠른 방법 (추천):\n1. Safari 하단의 다운로드 아이콘 (↓) 탭\n2. 방금 다운로드한 파일 탭\n3. 공유 버튼 탭 (□↑)\n4. "HabitCircuit"으로 열기 선택\n→ 앱이 자동으로 열리며 루틴이 추가됩니다!\n\n📁 또는 파일 앱 사용:\n1. 파일 앱 → "다운로드" 폴더\n2. 파일 탭하여 미리보기\n3. 공유 버튼 → "HabitCircuit"으로 열기\n\n💡 파일을 HabitCircuit 앱으로 바로 열면 자동으로 가져오기됩니다!`);
+        showToast('다운로드 완료! Safari 다운로드 목록에서 파일을 HabitCircuit으로 열어주세요.', 'success');
     } else {
-        showToast('전체 루틴이 다운로드되었습니다! 앱에서 가져오기 하세요.', 'success');
+        showToast('다운로드 완료!', 'success');
     }
     closeModal();
-};
+}
 
 window.editUserRoutines = function(userId) {
     const routines = currentUserRoutines[userId];
