@@ -322,6 +322,34 @@ async function likeRoutine(routineId) {
     }
 }
 
+async function likeUserRoutines(userId, routines) {
+    try {
+        // Like all routines for this user
+        const likePromises = routines.map(routine => {
+            const routineRef = doc(db, 'routines', routine.id);
+            return updateDoc(routineRef, {
+                likes: increment(1)
+            });
+        });
+
+        await Promise.all(likePromises);
+
+        // Update local state
+        routines.forEach(routine => {
+            const localRoutine = currentRoutines.find(r => r.id === routine.id);
+            if (localRoutine) {
+                localRoutine.likes = (localRoutine.likes || 0) + 1;
+            }
+        });
+
+        renderRoutines();
+        showToast('❤️ 좋아요!', 'success');
+    } catch (error) {
+        console.error('Error liking routines:', error);
+        showToast('좋아요 처리 중 오류가 발생했습니다.', 'error');
+    }
+}
+
 // ===== Render Functions =====
 function renderRoutines() {
     if (currentRoutines.length === 0) {
@@ -354,7 +382,15 @@ function renderRoutines() {
 
     // Add event listeners to user cards
     document.querySelectorAll('.user-card').forEach(card => {
-        card.addEventListener('click', () => {
+        card.addEventListener('click', (e) => {
+            // Check if click is on like button
+            if (e.target.closest('.total-likes')) {
+                e.stopPropagation();
+                const uploadKey = card.dataset.userId;
+                likeUserRoutines(uploadKey, groupedByUpload[uploadKey]);
+                return;
+            }
+
             const uploadKey = card.dataset.userId;
             showUserRoutines(uploadKey, groupedByUpload[uploadKey]);
         });
@@ -387,7 +423,11 @@ function createUserCard(userId, routines) {
             </div>
             <div class="user-card-footer">
                 <span class="upload-date">${formatDate(latestDate)}</span>
-                <span class="total-likes">❤️ ${totalLikes}</span>
+                <span class="total-likes" style="cursor: pointer; transition: transform 0.2s;"
+                      onmouseover="this.style.transform='scale(1.2)'"
+                      onmouseout="this.style.transform='scale(1)'">
+                    ❤️ ${totalLikes}
+                </span>
             </div>
         </div>
     `;
