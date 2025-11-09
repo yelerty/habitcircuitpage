@@ -49,7 +49,7 @@ const createRoutineDocument = (dayOfWeek, timeType, routines, userId, title = ''
 };
 
 // ===== Admin Configuration =====
-const ADMIN_PASSWORD = '0000'; // 관리자 비밀번호 (변경 가능)
+const ADMIN_PASSWORD = '1723'; // 관리자 비밀번호 (변경 가능)
 
 // ===== State Management =====
 let currentRoutines = [];
